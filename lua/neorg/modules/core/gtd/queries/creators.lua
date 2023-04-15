@@ -75,7 +75,7 @@ module.public = {
       bufnr = { bufnr, "number" },
     })
     local ts_utils = module.required["core.integrations.treesitter"].get_ts_utils()
-    local sr, sc = ts_utils.get_node_range(node)
+    local sr, sc = vim.treesitter.get_node_range(node)
 
     local tree = {
       { query = { "all", "heading2" } },
@@ -137,7 +137,7 @@ module.public = {
         projectAtEnd = true
       end
 
-      _, _, end_row, _ = ts_utils.get_node_range(document[1])
+      _, _, end_row, _ = vim.treesitter.get_node_range(document[1])
       -- Because TS is 0 based
       end_row = end_row + 1
     end
@@ -193,7 +193,7 @@ module.private = {
     local ts_utils = module.required["core.integrations.treesitter"].get_ts_utils()
 
     for _, node in pairs(nodes) do
-      local line = ts_utils.get_node_range(node[1])
+      local line = vim.treesitter.get_node_range(node[1])
 
       local count_newline = opts.newline and 1 or 0
       local count_delimiter = opts.delimiter and 1 or 0
@@ -227,7 +227,7 @@ module.private = {
 
     -- Creates the content to be inserted
     local ts_utils = module.required["core.integrations.treesitter"].get_ts_utils()
-    local node_line, node_col, _, _ = ts_utils.get_node_range(node[1])
+    local node_line, node_col, _, _ = vim.treesitter.get_node_range(node[1])
     local inserted_prefix = string.rep(" ", node_col) .. prefix
     module.private.insert_content(inserter, content, inserted_prefix)
 
@@ -247,7 +247,7 @@ module.private = {
       -- Gets the last tag in the found tag_set and append after it
       local tags_number = parent_tag_set[1]:child_count()
       local last_tag = parent_tag_set[1]:child(tags_number - 1)
-      local start_row, _, _, _ = ts_utils.get_node_range(last_tag)
+      local start_row, _, _, _ = vim.treesitter.get_node_range(last_tag)
 
       vim.api.nvim_buf_set_lines(temp_buf, start_row, start_row, false, inserter)
       return true

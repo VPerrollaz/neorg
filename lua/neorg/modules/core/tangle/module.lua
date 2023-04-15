@@ -146,72 +146,71 @@ The first code block will be tangled to `./output.lua`, the second code block wi
 local module = neorg.modules.create("core.tangle")
 
 module.setup = function()
-    return {
-        requires = {
-            "core.integrations.treesitter",
-            "core.neorgcmd",
-        },
-    }
+  return {
+    requires = {
+      "core.integrations.treesitter",
+      "core.neorgcmd",
+    },
+  }
 end
 
 module.load = function()
-    module.required["core.neorgcmd"].add_commands_from_table({
-        tangle = {
-            args = 1,
-            condition = "norg",
+  module.required["core.neorgcmd"].add_commands_from_table({
+    tangle = {
+      args = 1,
+      condition = "norg",
 
-            subcommands = {
-                ["current-file"] = {
-                    args = 0,
-                    name = "core.tangle.current-file",
-                },
-                -- directory = {
-                --     max_args = 1,
-                --     name = "core.tangle.directory",
-                -- }
-            },
+      subcommands = {
+        ["current-file"] = {
+          args = 0,
+          name = "core.tangle.current-file",
         },
-    })
+        -- directory = {
+        --     max_args = 1,
+        --     name = "core.tangle.directory",
+        -- }
+      },
+    },
+  })
 end
 
 module.public = {
-    tangle = function(buffer)
-        local parsed_document_metadata = module.required["core.integrations.treesitter"].get_document_metadata(buffer)
+  tangle = function(buffer)
+    local parsed_document_metadata = module.required["core.integrations.treesitter"].get_document_metadata(buffer)
 
-        if vim.tbl_isempty(parsed_document_metadata) or not parsed_document_metadata.tangle then
-            parsed_document_metadata = {
-                tangle = {},
-            }
+    if vim.tbl_isempty(parsed_document_metadata) or not parsed_document_metadata.tangle then
+      parsed_document_metadata = {
+        tangle = {},
+      }
+    end
+
+    local document_root = module.required["core.integrations.treesitter"].get_document_root(buffer)
+
+    local options = {
+      languages = {},
+      scope = parsed_document_metadata.tangle.scope or "all", -- "all" | "tagged" | "main"
+    }
+
+    if type(parsed_document_metadata.tangle) == "table" then
+      if vim.tbl_islist(parsed_document_metadata.tangle) then
+        for _, file in ipairs(parsed_document_metadata.tangle) do
+          options.languages[neorg.utils.get_filetype(file)] = file
         end
-
-        local document_root = module.required["core.integrations.treesitter"].get_document_root(buffer)
-
-        local options = {
-            languages = {},
-            scope = parsed_document_metadata.tangle.scope or "all", -- "all" | "tagged" | "main"
-        }
-
-        if type(parsed_document_metadata.tangle) == "table" then
-            if vim.tbl_islist(parsed_document_metadata.tangle) then
-                for _, file in ipairs(parsed_document_metadata.tangle) do
-                    options.languages[neorg.utils.get_filetype(file)] = file
-                end
-            elseif parsed_document_metadata.tangle.languages then
-                for language, file in pairs(parsed_document_metadata.tangle.languages) do
-                    options.languages[language] = file
-                end
-            end
-        elseif type(parsed_document_metadata.tangle) == "string" then
-            options.languages[neorg.utils.get_filetype(parsed_document_metadata.tangle)] =
-                parsed_document_metadata.tangle
+      elseif parsed_document_metadata.tangle.languages then
+        for language, file in pairs(parsed_document_metadata.tangle.languages) do
+          options.languages[language] = file
         end
+      end
+    elseif type(parsed_document_metadata.tangle) == "string" then
+      options.languages[neorg.utils.get_filetype(parsed_document_metadata.tangle)] = parsed_document_metadata.tangle
+    end
 
-        local tangles = {
-            -- filename = { content }
-        }
+    local tangles = {
+      -- filename = { content }
+    }
 
-        local query_str = neorg.lib.match(options.scope)({
-            _ = [[
+    local query_str = neorg.lib.match(options.scope)({
+      _ = [[
                 (ranged_tag
                     name: (tag_name) @_name
                     (#eq? @_name "code")
@@ -219,7 +218,7 @@ module.public = {
                         .
                         parameter: (tag_param) @_language)) @tag
             ]],
-            tagged = [[
+      tagged = [[
                 (carryover_tag_set
                     (carryover_tag
                         name: (tag_name) @_carryover_tag_name
@@ -231,94 +230,94 @@ module.public = {
                             .
                             parameter: (tag_param) @_language)) @tag)
             ]],
-        })
+    })
 
-        local query = vim.treesitter.parse_query("norg", query_str)
+    local query = vim.treesitter.query.parse_query("norg", query_str)
 
-        for id, node in query:iter_captures(document_root, buffer, 0, -1) do
-            local capture = query.captures[id]
+    for id, node in query:iter_captures(document_root, buffer, 0, -1) do
+      local capture = query.captures[id]
 
-            if capture == "tag" then
-                local parsed_tag = module.required["core.integrations.treesitter"].get_tag_info(node)
+      if capture == "tag" then
+        local parsed_tag = module.required["core.integrations.treesitter"].get_tag_info(node)
 
-                if parsed_tag then
-                    local file_to_tangle_to = options.languages[parsed_tag.parameters[1]]
-                    local content = parsed_tag.content
+        if parsed_tag then
+          local file_to_tangle_to = options.languages[parsed_tag.parameters[1]]
+          local content = parsed_tag.content
 
-                    if parsed_tag.parameters[1] == "norg" then
-                        for i, line in ipairs(content) do
-                            -- remove escape char
-                            local new_line, _ = line:gsub("\\(.?)", "%1")
-                            content[i] = new_line or ""
-                        end
-                    end
-
-                    for _, attribute in ipairs(parsed_tag.attributes) do
-                        if attribute.name == "tangle.none" then
-                            goto skip_tag
-                        elseif attribute.name == "tangle" and attribute.parameters[1] then
-                            if options.scope == "main" then
-                                goto skip_tag
-                            end
-
-                            file_to_tangle_to = table.concat(attribute.parameters)
-                        end
-                    end
-
-                    if file_to_tangle_to then
-                        tangles[file_to_tangle_to] = tangles[file_to_tangle_to] or {}
-                        vim.list_extend(tangles[file_to_tangle_to], content)
-                    end
-
-                    ::skip_tag::
-                end
+          if parsed_tag.parameters[1] == "norg" then
+            for i, line in ipairs(content) do
+              -- remove escape char
+              local new_line, _ = line:gsub("\\(.?)", "%1")
+              content[i] = new_line or ""
             end
-        end
+          end
 
-        return tangles
-    end,
+          for _, attribute in ipairs(parsed_tag.attributes) do
+            if attribute.name == "tangle.none" then
+              goto skip_tag
+            elseif attribute.name == "tangle" and attribute.parameters[1] then
+              if options.scope == "main" then
+                goto skip_tag
+              end
+
+              file_to_tangle_to = table.concat(attribute.parameters)
+            end
+          end
+
+          if file_to_tangle_to then
+            tangles[file_to_tangle_to] = tangles[file_to_tangle_to] or {}
+            vim.list_extend(tangles[file_to_tangle_to], content)
+          end
+
+          ::skip_tag::
+        end
+      end
+    end
+
+    return tangles
+  end,
 }
 
 module.on_event = function(event)
-    if event.type == "core.neorgcmd.events.core.tangle.current-file" then
-        local tangles = module.public.tangle(event.buffer)
+  if event.type == "core.neorgcmd.events.core.tangle.current-file" then
+    local tangles = module.public.tangle(event.buffer)
 
-        if not tangles or vim.tbl_isempty(tangles) then
-            vim.notify("Nothing to tangle!")
-            return
-        end
-
-        local file_count = vim.tbl_count(tangles)
-        local tangled_count = 0
-
-        for file, content in pairs(tangles) do
-            vim.loop.fs_open(vim.fn.expand(file), "w", 438, function(err, fd)
-                file_count = file_count - 1
-                assert(not err, neorg.lib.lazy_string_concat("Failed to open file '", file, "' for tangling: ", err))
-
-                vim.loop.fs_write(fd, table.concat(content, "\n"), 0, function(werr)
-                    assert(
-                        not werr,
-                        neorg.lib.lazy_string_concat("Failed to write to file '", file, "' for tangling: ", werr)
-                    )
-                end)
-
-                tangled_count = tangled_count + 1
-                if file_count == 0 then
-                    vim.schedule(
-                        neorg.lib.wrap(vim.notify, string.format("Successfully tangled %d file%s!", tangled_count, tangled_count == 1 and "" or "s"))
-                    )
-                end
-            end)
-        end
+    if not tangles or vim.tbl_isempty(tangles) then
+      vim.notify("Nothing to tangle!")
+      return
     end
+
+    local file_count = vim.tbl_count(tangles)
+    local tangled_count = 0
+
+    for file, content in pairs(tangles) do
+      vim.loop.fs_open(vim.fn.expand(file), "w", 438, function(err, fd)
+        file_count = file_count - 1
+        assert(not err, neorg.lib.lazy_string_concat("Failed to open file '", file, "' for tangling: ", err))
+
+        vim.loop.fs_write(fd, table.concat(content, "\n"), 0, function(werr)
+          assert(not werr, neorg.lib.lazy_string_concat("Failed to write to file '", file, "' for tangling: ", werr))
+        end)
+
+        tangled_count = tangled_count + 1
+        if file_count == 0 then
+          vim.schedule(
+            neorg.lib.wrap(
+              vim.notify,
+              string.format("Successfully tangled %d file%s!", tangled_count, tangled_count == 1 and "" or "s")
+            )
+          )
+        end
+      end)
+    end
+  end
 end
 
 module.events.subscribed = {
-    ["core.neorgcmd"] = {
-        ["core.tangle.current-file"] = true,
-        ["core.tangle.directory"] = true,
-    },
+  ["core.neorgcmd"] = {
+    ["core.tangle.current-file"] = true,
+    ["core.tangle.directory"] = true,
+  },
 }
 
 return module

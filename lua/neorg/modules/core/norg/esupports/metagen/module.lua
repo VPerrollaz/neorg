@@ -67,7 +67,7 @@ module.public = {
   ---@param buf number #The buffer to check in
   ---@return boolean,table #Whether the metadata was present, and the range of the metadata node
   is_metadata_present = function(buf)
-    local query = vim.treesitter.query.parse_query(
+    local query = vim.treesitter.query.parse(
       "norg",
       [[
                  (ranged_tag

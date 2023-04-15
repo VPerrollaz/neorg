@@ -236,7 +236,7 @@ module.public = {
       return
     end
 
-    local query = vim.treesitter.query.parse_query("norg", query_str)
+    local query = vim.treesitter.query.parse("norg", query_str)
 
     for id, node in query:iter_captures(document_root, 0) do
       local capture = query.captures[id]
@@ -326,7 +326,7 @@ module.public = {
       return
     end
 
-    local query = vim.treesitter.query.parse_query("norg", query_text)
+    local query = vim.treesitter.query.parse("norg", query_text)
     local range = module.required["core.integrations.treesitter"].get_node_range(link_node)
 
     local parsed_link_information = {}
@@ -521,7 +521,7 @@ module.public = {
           return
         end
 
-        local query = vim.treesitter.query.parse_query("norg", query_str)
+        local query = vim.treesitter.query.parse("norg", query_str)
 
         for id, node in query:iter_captures(document_root, buf_pointer) do
           local capture = query.captures[id]
@@ -684,7 +684,7 @@ module.private = {
       end
     end
 
-    local query = vim.treesitter.query.parse_query("norg", query_str)
+    local query = vim.treesitter.query.parse("norg", query_str)
 
     local document_root = module.required["core.integrations.treesitter"].get_document_root(buffer)
 

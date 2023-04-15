@@ -232,7 +232,7 @@ module.public = {
             ]],
     })
 
-    local query = vim.treesitter.query.parse_query("norg", query_str)
+    local query = vim.treesitter.query.parse("norg", query_str)
 
     for id, node in query:iter_captures(document_root, buffer, 0, -1) do
       local capture = query.captures[id]

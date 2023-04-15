@@ -140,7 +140,7 @@ module.public = {
         if not document_root then
             return
         end
-        local next_match_query = vim.treesitter.query.parse_query("norg", query_string)
+        local next_match_query = vim.treesitter.query.parse("norg", query_string)
         for id, node in next_match_query:iter_captures(document_root, 0, line_number - 1, -1) do
             if next_match_query.captures[id] == "next-segment" then
                 local start_line, start_col = node:range()
@@ -174,7 +174,7 @@ module.public = {
         if not document_root then
             return
         end
-        local previous_match_query = vim.treesitter.query.parse_query("norg", query_string)
+        local previous_match_query = vim.treesitter.query.parse("norg", query_string)
         local final_node = nil
 
         for id, node in previous_match_query:iter_captures(document_root, 0, 0, line_number) do
@@ -590,7 +590,7 @@ module.public = {
                 return
             end
 
-            local query = vim.treesitter.query.parse_query(
+            local query = vim.treesitter.query.parse(
                 "norg_meta",
                 [[
                 (metadata

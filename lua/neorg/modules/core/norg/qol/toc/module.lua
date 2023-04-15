@@ -104,7 +104,7 @@ module.public = {
   --- Parameters can be nil if no parameters to the insertion were given.
   find_toc = function()
     -- Extract any insertion that has a ToC value in it
-    local query = vim.treesitter.query.parse_query(
+    local query = vim.treesitter.query.parse(
       "norg",
       [[
             (insertion

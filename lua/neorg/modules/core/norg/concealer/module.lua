@@ -154,7 +154,7 @@ module.public = {
         if icon_data.query then
           -- Attempt to parse the query provided by `icon_data.query`
           -- A query must have at least one capture, e.g. "(test_node) @icon"
-          local query = vim.treesitter.query.parse_query("norg", icon_data.query)
+          local query = vim.treesitter.query.parse("norg", icon_data.query)
 
           -- This is a mapping of [id] = to_omit pairs, where `id` is a treesitter
           -- node's id and `to_omit` is a boolean.
@@ -265,7 +265,7 @@ module.public = {
     if tree then
       -- Query all code blocks
       local ok, query = pcall(
-        vim.treesitter.query.parse_query,
+        vim.treesitter.query.parse,
         "norg",
         [[(
                     (ranged_tag (tag_name) @_name) @tag
@@ -582,7 +582,7 @@ module.public = {
 
       for node_name, data in pairs(module.config.public.completion_level.queries) do
         local ok, query = pcall(
-          vim.treesitter.query.parse_query,
+          vim.treesitter.query.parse,
           "norg",
           string.format(
             [[

@@ -106,7 +106,7 @@ module.public = {
 
     if tree then
       -- get the language node used by the code block
-      local code_lang = vim.treesitter.query.parse_query(
+      local code_lang = vim.treesitter.query.parse(
         "norg",
         [[(
                     (ranged_tag (tag_name) @_tagname (tag_parameters) @language)
